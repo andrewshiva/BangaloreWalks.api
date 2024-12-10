@@ -23,10 +23,10 @@ namespace BangaloreWalks.api.Controllers
         }
 
         [HttpGet] // Add HTTP verb attribute
-        public IActionResult GetAll()
+        public  async Task <IActionResult> GetAll()
         {
             // Fetch regions from the database
-            var regions = dbContext.Regions.ToList();
+            var regions =  await dbContext.Regions.ToListAsync();
 
 
             var regionDto = new List<RegionDto>();
@@ -48,10 +48,10 @@ namespace BangaloreWalks.api.Controllers
 
         [HttpGet]
         [Route("{id:Guid}")]
-        public IActionResult GetById([FromRoute] Guid id)
+        public async Task<IActionResult> GetById([FromRoute] Guid id)
         {
             //var region = dbContext.Regions.Find(id);
-            var region = dbContext.Regions.FirstOrDefault(x => x.Id == id);
+            var region =  await dbContext.Regions.FirstOrDefaultAsync(x => x.Id == id);
 
 
             if (region == null)
@@ -73,7 +73,7 @@ namespace BangaloreWalks.api.Controllers
    
         [HttpPost]
 
-        public IActionResult Create([FromBody] AddRegionRequestDto addRegionRequestDto)
+        public async Task<IActionResult> Create([FromBody] AddRegionRequestDto addRegionRequestDto)
         {
             if (addRegionRequestDto == null)
             {
@@ -86,8 +86,8 @@ namespace BangaloreWalks.api.Controllers
                 Code = addRegionRequestDto.Code
             };
 
-            dbContext.Regions.Add(regionDomainModel);
-            dbContext.SaveChanges();
+           await dbContext.Regions.AddAsync(regionDomainModel);
+            await dbContext.SaveChangesAsync();
 
             var regionDto = new RegionDto
             {
@@ -102,10 +102,10 @@ namespace BangaloreWalks.api.Controllers
 
         [HttpPut]
         [Route("{id:Guid}")]
-        public IActionResult Update([FromRoute] Guid id ,[FromBody] UpdateRegionRequestDto updateRegionRequestDto) {
+        public async Task<IActionResult> Update([FromRoute] Guid id ,[FromBody] UpdateRegionRequestDto updateRegionRequestDto) {
           
 
-            var regionDomainModel = dbContext.Regions.FirstOrDefault(x => x.Id == id);
+            var regionDomainModel = await dbContext.Regions.FirstOrDefaultAsync(x => x.Id == id);
 
             if (regionDomainModel == null)
             {
@@ -115,7 +115,7 @@ namespace BangaloreWalks.api.Controllers
             regionDomainModel.Code = updateRegionRequestDto.Code;
             regionDomainModel.Name = updateRegionRequestDto.Name;
 
-            dbContext.SaveChanges();
+            await dbContext.SaveChangesAsync();
 
             var regionDto = new RegionDto
             {
@@ -131,10 +131,10 @@ namespace BangaloreWalks.api.Controllers
 
         [HttpDelete]
         [Route("{id:Guid}")]
-        public IActionResult Delete([FromRoute] Guid id)
+        public async Task<IActionResult> Delete([FromRoute] Guid id)
         {
             // Find the region to delete
-            var regionDomainModel = dbContext.Regions.FirstOrDefault(x => x.Id == id);
+            var regionDomainModel = await dbContext.Regions.FirstOrDefaultAsync(x => x.Id == id);
 
             if (regionDomainModel == null)
             {
@@ -144,7 +144,7 @@ namespace BangaloreWalks.api.Controllers
 
             // Remove the region
             dbContext.Regions.Remove(regionDomainModel);
-            dbContext.SaveChanges();
+           await  dbContext.SaveChangesAsync();
 
             // Map the deleted region to a DTO
             var regionDto = new RegionDto
