@@ -8,6 +8,7 @@ using System;
 using BangaloreWalks.api.Models.DTO;
 using BangaloreWalks.API.Models.Domain;
 using Region = BangaloreWalks.API.Models.Domain.Region;
+using BangaloreWalks.api.Repositories;
 
 namespace BangaloreWalks.api.Controllers
 {
@@ -16,21 +17,29 @@ namespace BangaloreWalks.api.Controllers
     public class RegionsController : ControllerBase
     {
         private readonly BangaloreWalksDbContext dbContext;
+        public readonly IRegionRepository regionRepository;
 
-        public RegionsController(BangaloreWalksDbContext dbContext)
+        public RegionsController(BangaloreWalksDbContext dbContext, IRegionRepository regionRepository)
         {
             this.dbContext = dbContext;
+            this.regionRepository = regionRepository;
         }
 
         [HttpGet] // Add HTTP verb attribute
-        public  async Task <IActionResult> GetAll()
+
+
+        [HttpGet]
+
+
+        public async Task<IActionResult> GetAll()
         {
             // Fetch regions from the database
-            var regions =  await dbContext.Regions.ToListAsync();
-
+            //var regions =  await dbContext.Regions.ToListAsync();
+            var regions = await regionRepository.GetAllAsync();
 
             var regionDto = new List<RegionDto>();
-            foreach (var region in regions) {
+            foreach (var region in regions)
+            {
 
                 regionDto.Add(new RegionDto()
                 {
@@ -41,7 +50,7 @@ namespace BangaloreWalks.api.Controllers
                 });
             }
 
-            return Ok(regions); // Return regions with 200 OK status
+            return Ok(regionDto);  
 
 
         }
@@ -51,7 +60,8 @@ namespace BangaloreWalks.api.Controllers
         public async Task<IActionResult> GetById([FromRoute] Guid id)
         {
             //var region = dbContext.Regions.Find(id);
-            var region =  await dbContext.Regions.FirstOrDefaultAsync(x => x.Id == id);
+            //var region =  await dbContext.Regions.FirstOrDefaultAsync(x => x.Id == id);
+            var region = await regionRepository.GetByIdAsync(id);
 
 
             if (region == null)
@@ -86,8 +96,10 @@ namespace BangaloreWalks.api.Controllers
                 Code = addRegionRequestDto.Code
             };
 
-           await dbContext.Regions.AddAsync(regionDomainModel);
-            await dbContext.SaveChangesAsync();
+            //await dbContext.Regions.AddAsync(regionDomainModel);
+            // await dbContext.SaveChangesAsync();
+
+            regionDomainModel = await regionRepository.CreateAsync(regionDomainModel);
 
             var regionDto = new RegionDto
             {
@@ -103,9 +115,15 @@ namespace BangaloreWalks.api.Controllers
         [HttpPut]
         [Route("{id:Guid}")]
         public async Task<IActionResult> Update([FromRoute] Guid id ,[FromBody] UpdateRegionRequestDto updateRegionRequestDto) {
-          
+            var regionDomainModel = new Region
+            {
+                Code = updateRegionRequestDto.Code,
+                Name = updateRegionRequestDto.Name,
+                RegionImageUrl = updateRegionRequestDto.RegionImageUrl
+            };
 
-            var regionDomainModel = await dbContext.Regions.FirstOrDefaultAsync(x => x.Id == id);
+            //var regionDomainModel = await dbContext.Regions.FirstOrDefaultAsync(x => x.Id == id);
+            regionDomainModel = await regionRepository.UpdateAsync(id, regionDomainModel);
 
             if (regionDomainModel == null)
             {
@@ -133,8 +151,8 @@ namespace BangaloreWalks.api.Controllers
         [Route("{id:Guid}")]
         public async Task<IActionResult> Delete([FromRoute] Guid id)
         {
-            // Find the region to delete
-            var regionDomainModel = await dbContext.Regions.FirstOrDefaultAsync(x => x.Id == id);
+             var regionDomainModel = await regionRepository.DeleteAsync(id);
+
 
             if (regionDomainModel == null)
             {
@@ -143,8 +161,8 @@ namespace BangaloreWalks.api.Controllers
             }
 
             // Remove the region
-            dbContext.Regions.Remove(regionDomainModel);
-           await  dbContext.SaveChangesAsync();
+           // dbContext.Regions.Remove(regionDomainModel);
+           //await  dbContext.SaveChangesAsync();
 
             // Map the deleted region to a DTO
             var regionDto = new RegionDto
