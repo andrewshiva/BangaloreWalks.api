@@ -7,8 +7,11 @@ using System.Drawing;
 using System;
 using BangaloreWalks.api.Models.DTO;
 using BangaloreWalks.API.Models.Domain;
+using AutoMapper;
+
 using Region = BangaloreWalks.API.Models.Domain.Region;
 using BangaloreWalks.api.Repositories;
+using BangaloreWalks.API.CustomActionFilters;
 
 namespace BangaloreWalks.api.Controllers
 {
@@ -18,44 +21,42 @@ namespace BangaloreWalks.api.Controllers
     {
         private readonly BangaloreWalksDbContext dbContext;
         public readonly IRegionRepository regionRepository;
+        private readonly IMapper mapper;
 
-        public RegionsController(BangaloreWalksDbContext dbContext, IRegionRepository regionRepository)
+        public RegionsController(BangaloreWalksDbContext dbContext, IRegionRepository regionRepository ,IMapper mapper)
         {
             this.dbContext = dbContext;
             this.regionRepository = regionRepository;
+            this.mapper = mapper;
         }
-
-        [HttpGet] // Add HTTP verb attribute
-
-
         [HttpGet]
-
-
         public async Task<IActionResult> GetAll()
         {
             // Fetch regions from the database
             //var regions =  await dbContext.Regions.ToListAsync();
             var regions = await regionRepository.GetAllAsync();
 
-            var regionDto = new List<RegionDto>();
-            foreach (var region in regions)
-            {
+            //var regionDto = new List<RegionDto>();
+            //foreach (var region in regions)
+            //{
 
-                regionDto.Add(new RegionDto()
-                {
-                    Id = region.Id,
-                    Name = region.Name,
-                    Code = region.Code
+            //    regionDto.Add(new RegionDto()
+            //    {
+            //        Id = region.Id,
+            //        Name = region.Name,
+            //        Code = region.Code
 
-                });
-            }
-
-            return Ok(regionDto);  
+            //    });
+            //}
 
 
+            return Ok(mapper.Map<List<RegionDto>>(regions));
         }
 
-        [HttpGet]
+
+         
+
+            [HttpGet]
         [Route("{id:Guid}")]
         public async Task<IActionResult> GetById([FromRoute] Guid id)
         {
@@ -80,69 +81,78 @@ namespace BangaloreWalks.api.Controllers
             return Ok(region);
         }
 
-   
+        [ValidateModel]
         [HttpPost]
 
         public async Task<IActionResult> Create([FromBody] AddRegionRequestDto addRegionRequestDto)
         {
-            if (addRegionRequestDto == null)
-            {
-                return BadRequest("Region data is required.");
+
+           
+                if (addRegionRequestDto == null)
+                {
+                    return BadRequest("Region data is required.");
+                }
+
+                var regionDomainModel = new Region
+                {
+                    Name = addRegionRequestDto.Name,
+                    Code = addRegionRequestDto.Code
+                };
+
+                //await dbContext.Regions.AddAsync(regionDomainModel);
+                // await dbContext.SaveChangesAsync();
+
+                regionDomainModel = await regionRepository.CreateAsync(regionDomainModel);
+
+                var regionDto = new RegionDto
+                {
+                    Id = regionDomainModel.Id,
+                    Code = regionDomainModel.Code,
+                    Name = regionDomainModel.Name
+                };
+
+                // Assuming GetById takes an ID and returns the created region
+                return CreatedAtAction(nameof(GetById), new { id = regionDto.Id }, regionDto);
             }
 
-            var regionDomainModel = new Region
-            {
-                Name = addRegionRequestDto.Name,
-                Code = addRegionRequestDto.Code
-            };
 
-            //await dbContext.Regions.AddAsync(regionDomainModel);
-            // await dbContext.SaveChangesAsync();
-
-            regionDomainModel = await regionRepository.CreateAsync(regionDomainModel);
-
-            var regionDto = new RegionDto
-            {
-                Id = regionDomainModel.Id,
-                Code = regionDomainModel.Code,
-                Name = regionDomainModel.Name
-            };
-
-            // Assuming GetById takes an ID and returns the created region
-            return CreatedAtAction(nameof(GetById), new { id = regionDto.Id }, regionDto);
-        }
-
+        [ValidateModel]
         [HttpPut]
         [Route("{id:Guid}")]
         public async Task<IActionResult> Update([FromRoute] Guid id ,[FromBody] UpdateRegionRequestDto updateRegionRequestDto) {
-            var regionDomainModel = new Region
-            {
-                Code = updateRegionRequestDto.Code,
-                Name = updateRegionRequestDto.Name,
-                RegionImageUrl = updateRegionRequestDto.RegionImageUrl
-            };
 
-            //var regionDomainModel = await dbContext.Regions.FirstOrDefaultAsync(x => x.Id == id);
-            regionDomainModel = await regionRepository.UpdateAsync(id, regionDomainModel);
 
-            if (regionDomainModel == null)
-            {
-                return  NotFound();
-            }
+           var regionDomainModel = new Region
+                {
+                    Code = updateRegionRequestDto.Code,
+                    Name = updateRegionRequestDto.Name,
+                    RegionImageUrl = updateRegionRequestDto.RegionImageUrl
+                };
 
-            regionDomainModel.Code = updateRegionRequestDto.Code;
-            regionDomainModel.Name = updateRegionRequestDto.Name;
+                //var regionDomainModel = await dbContext.Regions.FirstOrDefaultAsync(x => x.Id == id);
+                regionDomainModel = await regionRepository.UpdateAsync(id, regionDomainModel);
 
-            await dbContext.SaveChangesAsync();
+                if (regionDomainModel == null)
+                {
+                    return NotFound();
+                }
 
-            var regionDto = new RegionDto
-            {
-                Id = regionDomainModel.Id,
-                Code = regionDomainModel.Code,
-                Name = regionDomainModel.Name
-            };
+                regionDomainModel.Code = updateRegionRequestDto.Code;
+                regionDomainModel.Name = updateRegionRequestDto.Name;
 
-            return Ok(regionDomainModel);
+                await dbContext.SaveChangesAsync();
+
+                var regionDto = new RegionDto
+                {
+                    Id = regionDomainModel.Id,
+                    Code = regionDomainModel.Code,
+                    Name = regionDomainModel.Name
+                };
+
+                return Ok(regionDomainModel);
+
+            
+             
 
         }
 
