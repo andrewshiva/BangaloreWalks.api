@@ -64,6 +64,4 @@ Contributions are welcome! Please open an issue or submit a pull request to impr
 
 ---
 
-## Contact
 
-For any queries or support, please contact [support@example.com](mailto:support@example.com).
